@@ -16,6 +16,8 @@ class ArraySchema implements Schema
         public readonly string $description,
         public readonly Schema $items,
         public readonly bool $nullable = false,
+        public readonly ?int $max_items = null,
+        public readonly ?int $min_items = null,
     ) {}
 
     #[\Override]
@@ -33,6 +35,8 @@ class ArraySchema implements Schema
                 ? $this->castToNullable('array')
                 : 'array',
             'items' => $this->items->toArray(),
+            ...$this->max_items ? ['maxItems' => $this->max_items] : [],
+            ...$this->min_items ? ['minItems' => $this->min_items] : [],
         ];
     }
 }

@@ -15,6 +15,8 @@ class StringSchema implements Schema
         public readonly string $name,
         public readonly string $description,
         public readonly bool $nullable = false,
+        /** @var array<int,string|int> */
+        public readonly array $enum = [],
     ) {}
 
     #[\Override]
@@ -31,6 +33,7 @@ class StringSchema implements Schema
             'type' => $this->nullable
                 ? $this->castToNullable('string')
                 : 'string',
+            'enum' => $this->enum,
         ];
     }
 }
