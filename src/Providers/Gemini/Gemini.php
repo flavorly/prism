@@ -2,33 +2,33 @@
 
 declare(strict_types=1);
 
-namespace EchoLabs\Prism\Providers\Anthropic;
+namespace EchoLabs\Prism\Providers\Gemini;
 
 use EchoLabs\Prism\Contracts\Provider;
 use EchoLabs\Prism\Embeddings\Request as EmbeddingRequest;
 use EchoLabs\Prism\Embeddings\Response as EmbeddingResponse;
-use EchoLabs\Prism\Providers\Anthropic\Handlers\Structured;
-use EchoLabs\Prism\Providers\Anthropic\Handlers\Text;
+use EchoLabs\Prism\Providers\Gemini\Handlers\Embeddings;
+use EchoLabs\Prism\Providers\Gemini\Handlers\Text;
 use EchoLabs\Prism\Providers\ProviderResponse;
 use EchoLabs\Prism\Structured\Request as StructuredRequest;
 use EchoLabs\Prism\Text\Request as TextRequest;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
-class Anthropic implements Provider
+class Gemini implements Provider
 {
     public function __construct(
         #[\SensitiveParameter] public readonly string $apiKey,
-        public readonly string $apiVersion,
+        public readonly string $url,
     ) {}
 
     #[\Override]
     public function text(TextRequest $request): ProviderResponse
     {
-        $handler = new Text($this->client(
-            $request->clientOptions,
-            $request->clientRetry
-        ));
+        $handler = new Text(
+            $this->client($request->clientOptions, $request->clientRetry),
+            $this->apiKey
+        );
 
         return $handler->handle($request);
     }
@@ -36,18 +36,18 @@ class Anthropic implements Provider
     #[\Override]
     public function structured(StructuredRequest $request): ProviderResponse
     {
-        $handler = new Structured($this->client(
-            $request->clientOptions,
-            $request->clientRetry
-        ));
-
-        return $handler->handle($request);
+        throw new \Exception(sprintf('%s does not support structured mode', class_basename($this)));
     }
 
     #[\Override]
     public function embeddings(EmbeddingRequest $request): EmbeddingResponse
     {
-        throw new \Exception(sprintf('%s does not support embeddings', class_basename($this)));
+        $handler = new Embeddings($this->client(
+            $request->clientOptions,
+            $request->clientRetry
+        ));
+
+        return $handler->handle($request);
     }
 
     /**
@@ -56,12 +56,11 @@ class Anthropic implements Provider
      */
     protected function client(array $options = [], array $retry = []): PendingRequest
     {
-        return Http::withHeaders([
-            'x-api-key' => $this->apiKey,
-            'anthropic-version' => $this->apiVersion,
-        ])
-            ->withOptions($options)
+        return Http::withOptions($options)
+            ->withHeaders([
+                'x-goog-api-key' => $this->apiKey,
+            ])
             ->retry(...$retry)
-            ->baseUrl('https://api.anthropic.com/v1');
+            ->baseUrl($this->url);
     }
 }

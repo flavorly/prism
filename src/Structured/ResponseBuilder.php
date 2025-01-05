@@ -40,14 +40,14 @@ class ResponseBuilder
 
     public function toResponse(): Response
     {
-        /** @var Step */
+        /** @var Step $finalStep */
         $finalStep = $this->steps->last();
 
         return new Response(
             steps: $this->steps,
             responseMessages: $this->responseMessages,
             text: $finalStep->text,
-            object: $finalStep->finishReason === FinishReason::Stop
+            structured: $finalStep->finishReason === FinishReason::Stop
                 ? $this->decodeObject($finalStep->text)
                 : [],
             finishReason: $finalStep->finishReason,

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace EchoLabs\Prism\Providers\OpenAI\Handlers;
+namespace EchoLabs\Prism\Providers\Gemini\Handlers;
 
 use EchoLabs\Prism\Embeddings\Request;
 use EchoLabs\Prism\Embeddings\Response as EmbeddingsResponse;
@@ -26,29 +26,29 @@ class Embeddings
 
         $data = $response->json();
 
-        if (! $data || data_get($data, 'error')) {
-            throw PrismException::providerResponseError(vsprintf(
-                'OpenAI Error:  [%s] %s',
-                [
-                    data_get($data, 'error.type', 'unknown'),
-                    data_get($data, 'error.message', 'unknown'),
-                ]
-            ));
+        if (! isset($data['embedding'])) {
+            throw PrismException::providerResponseError(
+                'Gemini Error: Invalid response format or missing embedding data'
+            );
         }
 
         return new EmbeddingsResponse(
-            embeddings: data_get($data, 'data.0.embedding', []),
-            usage: new EmbeddingsUsage(data_get($data, 'usage.total_tokens', null)),
+            embeddings: $data['embedding']['values'] ?? [],
+            usage: new EmbeddingsUsage(0) // Gemini doesn't provide token usage info
         );
     }
 
     protected function sendRequest(Request $request): Response
     {
         return $this->client->post(
-            'embeddings',
+            "{$request->model}:embedContent",
             [
                 'model' => $request->model,
-                'input' => $request->input,
+                'content' => [
+                    'parts' => [
+                        ['text' => $request->input],
+                    ],
+                ],
             ]
         );
     }
